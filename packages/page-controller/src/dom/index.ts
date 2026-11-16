@@ -76,7 +76,7 @@ export function getFlatTree(config: DomConfig): FlatDomTree {
 	}
 
 	const elements = domTree({
-		doHighlightElements: true,
+		doHighlightElements: config.highlightOpacity !== 0 || config.highlightLabelOpacity !== 0,
 		debugMode: true,
 		focusHighlightIndex: -1,
 		viewportExpansion,

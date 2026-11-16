@@ -24,6 +24,11 @@ import { isAnchorElement } from './utils'
  * Configuration for PageController
  */
 export interface PageControllerConfig extends dom.DomConfig {
+	/**
+	 * Validate a target before interaction. Throw to reject the action.
+	 * Input actions invoke this before clicking and again before changing the value.
+	 */
+	beforeAction?: (element: HTMLElement) => Promise<void>
 	/** Enable visual mask overlay during operations (default: false) */
 	enableMask?: boolean
 }
@@ -239,6 +244,15 @@ export class PageController extends EventTarget {
 	}
 
 	/**
+	 * Resolve an index from the latest extraction to its connected, enabled target.
+	 * The reference is invalidated by page changes; callers must revalidate before use.
+	 */
+	getElement(index: number): HTMLElement {
+		this.assertIndexed()
+		return getElementByIndex(this.selectorMap, index)
+	}
+
+	/**
 	 * Click element by index
 	 */
 	async clickElement(index: number): Promise<ActionResult> {
@@ -246,7 +260,7 @@ export class PageController extends EventTarget {
 			this.assertIndexed()
 			const element = getElementByIndex(this.selectorMap, index)
 			const elemText = this.elementTextMap.get(index)
-			await clickElement(element)
+			await clickElement(element, this.config.beforeAction)
 
 			// Handle links that open in new tabs
 			if (isAnchorElement(element) && element.target === '_blank') {
@@ -276,7 +290,7 @@ export class PageController extends EventTarget {
 			this.assertIndexed()
 			const element = getElementByIndex(this.selectorMap, index)
 			const elemText = this.elementTextMap.get(index)
-			await inputTextElement(element, text)
+			await inputTextElement(element, text, this.config.beforeAction)
 
 			return {
 				success: true,
@@ -298,7 +312,7 @@ export class PageController extends EventTarget {
 			this.assertIndexed()
 			const element = getElementByIndex(this.selectorMap, index)
 			const elemText = this.elementTextMap.get(index)
-			await selectOptionElement(element as HTMLSelectElement, optionText)
+			await selectOptionElement(element as HTMLSelectElement, optionText, this.config.beforeAction)
 
 			return {
 				success: true,

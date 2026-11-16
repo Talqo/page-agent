@@ -1666,6 +1666,23 @@ export default (
 
 		// Process children, with special handling for iframes and rich text editors
 		if (node.tagName) {
+			if (
+				node instanceof HTMLInputElement ||
+				node instanceof HTMLTextAreaElement ||
+				node instanceof HTMLSelectElement
+			) {
+				nodeData.attributes.value = node.value
+			}
+			if (node instanceof HTMLOptionElement) {
+				nodeData.attributes.selected = String(node.selected)
+			}
+			const labelledBy = node.getAttribute('aria-labelledby')
+			if (labelledBy) {
+				nodeData.attributes['aria-label'] = labelledBy
+					.split(/\s+/)
+					.map((id) => node.ownerDocument.getElementById(id)?.textContent?.trim() || '')
+					.join(' ')
+			}
 			const tagName = node.tagName.toLowerCase()
 
 			// Handle iframes
