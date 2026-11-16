@@ -24,10 +24,7 @@ import { isAnchorElement } from './utils'
  * Configuration for PageController
  */
 export interface PageControllerConfig extends dom.DomConfig {
-	/**
-	 * Validate a target before interaction. Throw to reject the action.
-	 * Input actions invoke this before clicking and again before changing the value.
-	 */
+	/** Throw to reject an action. Input is checked before clicking and again before changing its value. */
 	beforeAction?: (element: HTMLElement) => Promise<void>
 	/** Enable visual mask overlay during operations (default: false) */
 	enableMask?: boolean
@@ -243,10 +240,7 @@ export class PageController extends EventTarget {
 		}
 	}
 
-	/**
-	 * Resolve an index from the latest extraction to its connected, enabled target.
-	 * The reference is invalidated by page changes; callers must revalidate before use.
-	 */
+	/** Resolve a target from the latest extraction. Revalidate it before use if the page changes. */
 	getElement(index: number): HTMLElement {
 		this.assertIndexed()
 		return getElementByIndex(this.selectorMap, index)
