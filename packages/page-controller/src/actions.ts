@@ -37,6 +37,9 @@ export function getElementByIndex(
 	if (!isHTMLElement(element)) {
 		throw new Error(`Element at index ${index} is not an HTMLElement`)
 	}
+	if (!element.isConnected || element.matches(':disabled, [aria-disabled=true]')) {
+		throw new Error(`Element at index ${index} is unavailable`)
+	}
 
 	return element
 }
@@ -61,7 +64,10 @@ function blurLastClickedElement() {
  *
  * @private Internal method, subject to change at any time.
  */
-export async function clickElement(element: HTMLElement) {
+export async function clickElement(
+	element: HTMLElement,
+	beforeAction?: (element: HTMLElement) => Promise<void>
+) {
 	blurLastClickedElement()
 
 	lastClickedElement = element
@@ -89,6 +95,16 @@ export async function clickElement(element: HTMLElement) {
 	await disablePassThrough()
 	const target =
 		hitTarget instanceof HTMLElement && element.contains(hitTarget) ? hitTarget : element
+
+	if (
+		!element.isConnected ||
+		element.matches(':disabled, [aria-disabled=true]') ||
+		!hitTarget ||
+		!element.contains(hitTarget)
+	) {
+		throw new Error('Target is unavailable or covered')
+	}
+	await beforeAction?.(element)
 
 	const pointerOpts = {
 		bubbles: true,
@@ -128,13 +144,18 @@ export async function clickElement(element: HTMLElement) {
 /**
  * @private Internal method, subject to change at any time.
  */
-export async function inputTextElement(element: HTMLElement, text: string) {
+export async function inputTextElement(
+	element: HTMLElement,
+	text: string,
+	beforeAction?: (element: HTMLElement) => Promise<void>
+) {
 	const isContentEditable = element.isContentEditable
 	if (!isInputElement(element) && !isTextAreaElement(element) && !isContentEditable) {
 		throw new Error('Element is not an input, textarea, or contenteditable')
 	}
 
-	await clickElement(element)
+	await clickElement(element, beforeAction)
+	await beforeAction?.(element)
 
 	if (isContentEditable) {
 		// Contenteditable support (partial)
@@ -233,7 +254,11 @@ export async function inputTextElement(element: HTMLElement, text: string) {
  * @todo browser-use version is very complex and supports menu tags, need to follow up
  * @private Internal method, subject to change at any time.
  */
-export async function selectOptionElement(selectElement: HTMLSelectElement, optionText: string) {
+export async function selectOptionElement(
+	selectElement: HTMLSelectElement,
+	optionText: string,
+	beforeAction?: (element: HTMLElement) => Promise<void>
+) {
 	if (!isSelectElement(selectElement)) {
 		throw new Error('Element is not a select element')
 	}
@@ -244,6 +269,10 @@ export async function selectOptionElement(selectElement: HTMLSelectElement, opti
 	if (!option) {
 		throw new Error(`Option with text "${optionText}" not found in select element`)
 	}
+	if (option.disabled || option.parentElement?.matches('optgroup:disabled')) {
+		throw new Error('Option is disabled')
+	}
+	await beforeAction?.(selectElement)
 
 	selectElement.value = option.value
 	selectElement.dispatchEvent(new Event('change', { bubbles: true }))

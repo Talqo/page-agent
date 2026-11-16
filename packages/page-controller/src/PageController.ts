@@ -24,6 +24,8 @@ import { isAnchorElement } from './utils'
  * Configuration for PageController
  */
 export interface PageControllerConfig extends dom.DomConfig {
+	/** Throw to reject an action. Input is checked before clicking and again before changing its value. */
+	beforeAction?: (element: HTMLElement) => Promise<void>
 	/** Enable visual mask overlay during operations (default: false) */
 	enableMask?: boolean
 }
@@ -238,6 +240,12 @@ export class PageController extends EventTarget {
 		}
 	}
 
+	/** Resolve a target from the latest extraction. Revalidate it before use if the page changes. */
+	getElement(index: number): HTMLElement {
+		this.assertIndexed()
+		return getElementByIndex(this.selectorMap, index)
+	}
+
 	/**
 	 * Click element by index
 	 */
@@ -246,7 +254,7 @@ export class PageController extends EventTarget {
 			this.assertIndexed()
 			const element = getElementByIndex(this.selectorMap, index)
 			const elemText = this.elementTextMap.get(index)
-			await clickElement(element)
+			await clickElement(element, this.config.beforeAction)
 
 			// Handle links that open in new tabs
 			if (isAnchorElement(element) && element.target === '_blank') {
@@ -276,7 +284,7 @@ export class PageController extends EventTarget {
 			this.assertIndexed()
 			const element = getElementByIndex(this.selectorMap, index)
 			const elemText = this.elementTextMap.get(index)
-			await inputTextElement(element, text)
+			await inputTextElement(element, text, this.config.beforeAction)
 
 			return {
 				success: true,
@@ -298,7 +306,7 @@ export class PageController extends EventTarget {
 			this.assertIndexed()
 			const element = getElementByIndex(this.selectorMap, index)
 			const elemText = this.elementTextMap.get(index)
-			await selectOptionElement(element as HTMLSelectElement, optionText)
+			await selectOptionElement(element as HTMLSelectElement, optionText, this.config.beforeAction)
 
 			return {
 				success: true,
